@@ -74,6 +74,12 @@
         "tsx": "never"
       }
     ],
+    "@typescript-eslint/explicit-module-boundary-types":[
+      "error",
+      {
+        "allowExpressions":true
+      }
+    ],
     "@typescript-eslint/explicit-function-return-type": [
       "error",
       {

@@ -4,4 +4,14 @@
   padding: 0;
 }
 
-// TODO
+:root {
+  --white: #fff;
+  --black: #000;
+  --gray-100: #f8f8f8;
+  --gray-800: #282c34;
+  --pink: #ff57b2;
+}
+
+body {
+  background: var(--gray-800);
+}

@@ -11,6 +11,10 @@ import {
   AiOutlineUser,
 } from 'react-icons/ai';
 
+import { format } from 'date-fns';
+import ptBR from 'date-fns/locale/pt-BR';
+import { useRouter } from 'next/router';
+
 interface Post {
   first_publication_date: string | null;
   data: {
@@ -33,53 +37,72 @@ interface PostProps {
 }
 
 export default function Post({ post }: PostProps) {
+  const router = useRouter();
+
+  if (router.isFallback) {
+    return <div className={styles.loading}>Carregando...</div>;
+  }
+
+  console.log('Before', post);
+
+  let formattedPost: Post = {
+    first_publication_date: format(
+      new Date(post.first_publication_date),
+      'dd MMM yyyy',
+      {
+        locale: ptBR,
+      }
+    ),
+    data: {
+      title: post.data.title,
+      banner: {
+        url: post.data.banner.url,
+      },
+      author: post.data.author,
+      content: post.data.content,
+    },
+  };
+  console.log('After', formattedPost);
+
   return (
     <>
-      <head>
-        <title>Home | Ignews</title>
-      </head>
-      {!post.first_publication_date ? (
-        <div className={styles.loading}>
-          <Loader type="TailSpin" height={48} width={48} color="#ff57b2" />
-          Carregando...
-        </div>
-      ) : (
-        <main className={styles.container}>
-          <img src={post.data.banner.url} alt={post.data.title} />
-          <div className={styles.post}>
-            <div className={styles.title}>{post.data.title}</div>
-            <div className={styles.infos}>
-              <div className={styles.info}>
-                <AiOutlineCalendar />
-                {post.first_publication_date}
-              </div>
-              <div className={styles.info}>
-                <AiOutlineUser />
-                {post.data.author}
-              </div>
-              <div className={styles.info}>
-                <AiOutlineClockCircle />
-                4min
-              </div>
+      <main className={styles.container}>
+        <img
+          src={formattedPost.data.banner.url || ''}
+          alt={formattedPost.data.title}
+        />
+        <div className={styles.post}>
+          <div className={styles.title}>{formattedPost.data.title}</div>
+          <div className={styles.infos}>
+            <div className={styles.info}>
+              <AiOutlineCalendar />
+              {formattedPost.first_publication_date}
             </div>
-
-            <div className={styles.content}>
-              {post.data.content.map(content => {
-                return (
-                  <div key={content.heading}>
-                    <div className={styles.heading}>{content.heading}</div>
-                    <div className={styles.body}>
-                      {content.body.map(item => (
-                        <p>{item.text}</p>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className={styles.info}>
+              <AiOutlineUser />
+              {formattedPost.data.author}
+            </div>
+            <div className={styles.info}>
+              <AiOutlineClockCircle />4 min
             </div>
           </div>
-        </main>
-      )}
+
+          <div className={styles.content}>
+            {formattedPost.data.content.map(content => {
+              return (
+                <div key={content.heading}>
+                  <div className={styles.heading}>{content.heading}</div>
+                  <div className={styles.body}>
+                    {content.body.map(item => (
+                      <p key={item.text}>{item.text}</p>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </main>
     </>
   );
 }
@@ -98,7 +121,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
 
   return {
     paths: paths,
-    fallback: 'blocking',
+    fallback: true,
   };
 };
 
@@ -107,28 +130,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
   const prismic = getPrismicClient();
   const response = await prismic.getByUID('post', String(slug), {});
 
-  console.log('response', response);
-  let post = {};
-
-  if (response) {
-    post = {
-      first_publication_date: new Date(
-        response.first_publication_date
-      ).toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      }),
-      data: {
-        title: response.data.title,
-        banner: {
-          url: response.data.banner.url,
-        },
-        author: response.data.author,
-        content: response.data.content,
-      },
-    };
-  }
+  const post: Post = response;
 
   return {
     props: {

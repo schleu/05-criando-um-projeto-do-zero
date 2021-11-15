@@ -5,7 +5,11 @@ import { AiOutlineCalendar, AiOutlineUser } from 'react-icons/ai';
 
 import Prismic from '@prismicio/client';
 import Link from 'next/link';
-import { GetServerSideProps, GetStaticProps } from 'next';
+import { GetStaticProps } from 'next';
+
+import { format } from 'date-fns';
+import ptBR from 'date-fns/locale/pt-BR';
+import { useEffect, useState } from 'react';
 
 interface Post {
   uid?: string;
@@ -27,10 +31,42 @@ interface HomeProps {
 }
 
 export default function Home({ postsPagination }: HomeProps) {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [nextPage, setNextPage] = useState('');
+
+  useEffect(() => {
+    formatPost(postsPagination.results);
+    setNextPage(postsPagination.next_page);
+  }, [postsPagination]);
+
+  const formatPost = (data: Post[]) => {
+    const formattedPost = data?.map(post => {
+      return {
+        ...post,
+        first_publication_date: format(
+          new Date(post.first_publication_date),
+          'dd MMM yyyy',
+          {
+            locale: ptBR,
+          }
+        ),
+      };
+    });
+    setPosts(prev => [...prev, ...formattedPost]);
+  };
+
+  const handleNextPage = async () => {
+    const result: PostPagination = await fetch(`${nextPage}`, { method: 'get' })
+      .then(response => response.json())
+      .catch(err => console.error('err', err));
+    formatPost(result.results);
+    setNextPage(result.next_page);
+  };
+
   return (
     <>
       <div className={styles.posts}>
-        {postsPagination.results?.map(post => (
+        {posts?.map(post => (
           <Link key={post.uid} href={`post/${post.uid}`} prefetch>
             <a className={styles.a}>
               <strong className={styles.title}>{post.data.title}</strong>
@@ -38,14 +74,7 @@ export default function Home({ postsPagination }: HomeProps) {
               <div className={styles.dateAuthor}>
                 <time className={styles.date}>
                   <AiOutlineCalendar />
-                  {new Date(post.first_publication_date).toLocaleDateString(
-                    'pt-BR',
-                    {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    }
-                  )}
+                  {post.first_publication_date}
                 </time>
                 <p className={styles.author}>
                   <AiOutlineUser />
@@ -56,11 +85,15 @@ export default function Home({ postsPagination }: HomeProps) {
           </Link>
         ))}
 
-        {postsPagination.next_page && (
+        {nextPage && (
           <div className={styles.more}>
-            <Link href={`?page=${postsPagination.next_page}`}>
+            <button
+              onClick={() => {
+                handleNextPage();
+              }}
+            >
               Carregar mais posts
-            </Link>
+            </button>
           </div>
         )}
       </div>
@@ -68,13 +101,13 @@ export default function Home({ postsPagination }: HomeProps) {
   );
 }
 
-export const getStaticProps: GetStaticProps = async context => {
+export const getStaticProps: GetStaticProps = async () => {
   const prismic = getPrismicClient();
   const postsResponse = await prismic.query(
     [Prismic.predicates.at('document.type', 'post')],
     {
       fetch: ['post.title', 'post.subtitle', 'post.author'],
-      pageSize: 5,
+      pageSize: 1,
     }
   );
 
@@ -93,7 +126,7 @@ export const getStaticProps: GetStaticProps = async context => {
   return {
     props: {
       postsPagination: {
-        next_page: postsResponse.next_page && postsResponse.page + 1,
+        next_page: postsResponse.next_page,
         results: posts,
       },
     },

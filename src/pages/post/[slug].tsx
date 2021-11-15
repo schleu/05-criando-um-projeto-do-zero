@@ -43,8 +43,6 @@ export default function Post({ post }: PostProps) {
     return <div className={styles.loading}>Carregando...</div>;
   }
 
-  console.log('Before', post);
-
   let formattedPost: Post = {
     first_publication_date: format(
       new Date(post.first_publication_date),
@@ -62,7 +60,6 @@ export default function Post({ post }: PostProps) {
       content: post.data.content,
     },
   };
-  console.log('After', formattedPost);
 
   return (
     <>

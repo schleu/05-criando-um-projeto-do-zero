@@ -86,14 +86,13 @@ export default function Home({ postsPagination }: HomeProps) {
         ))}
 
         {nextPage && (
-          <div className={styles.more}>
-            <button
-              onClick={() => {
-                handleNextPage();
-              }}
-            >
-              Carregar mais posts
-            </button>
+          <div
+            onClick={() => {
+              handleNextPage();
+            }}
+            className={styles.more}
+          >
+            Carregar mais posts
           </div>
         )}
       </div>
